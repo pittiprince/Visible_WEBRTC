@@ -1,0 +1,49 @@
+# Visible — Project Engineering Instructions
+
+These instructions supplement the parent workspace `.clinerules/` files. All rules from the parent workspace remain in effect.
+
+## Project Scope & Identity
+
+- **Project:** Visible — an educational platform for complex technology
+- **First Module:** WebRTC (1:1 P2P, mesh, SFU)
+- **Repo boundary:** All work must remain inside `/Users/pittiprince/odsy/projects/visible/`
+- **Never touch:** `/Users/pittiprince/odsy/projects/Dream Digital/`
+
+## Role Allocations
+
+- **Cline + OmniRoute:** All web application code, architecture, React components, WebRTC integration, tests, docs, and build/deploy
+- **Claude:** Blender 3D asset creation and scene authoring (when Blender is available)
+- **User:** Product direction, review, running local commands when needed
+
+## Content Principles
+
+1. **Real over simulated:** Always prefer real browser WebRTC connections over mocks.
+2. **Data provenance:** Every stat or event displayed must clearly show its source:
+   - `[REAL]` — Directly from `RTCPeerConnection` or `getStats()`
+   - `[DERIVED]` — Calculated from real observations (e.g., bitrate)
+   - `[SIMULATION]` — Synthetic data where browser APIs don't reach
+3. **No magic abstractions:** Do not use `peerjs` or `simple-peer`. We use the native `RTCPeerConnection` API so learners see how it actually works.
+4. **Inspectable:** Every state transition (connectionState, iceConnectionState, signalingState) must be visible and logged.
+
+## Code Standards
+
+- **TypeScript:** Strict mode, no implicit `any`, all WebRTC event types explicitly typed.
+- **Components:** Small, single-responsibility, accessible (ARIA, keyboard navigation).
+- **Styling:** CSS modules or utility classes — keep it clean and performant. Avoid heavy CSS-in-JS runtimes that impact 3D render loops.
+- **3D:** Target 60fps. Dispose geometries, materials, and textures on unmount.
+- **Tests:** Unit tests for SDP parsing, stats calculation, and state machines. Component tests for UI controls.
+
+## File Organization
+
+```
+src/
+  components/     # UI components
+  pages/          # Educational modules / labs
+  services/       # WebRTC, signaling, stats services
+  hooks/          # React hooks for WebRTC
+  types/          # TypeScript definitions
+  utils/          # Pure helper functions
+public/assets/    # Exported 3D assets (GLB)
+tests/            # Test suites
+docs/             # Architectural and learning documentation
+```
