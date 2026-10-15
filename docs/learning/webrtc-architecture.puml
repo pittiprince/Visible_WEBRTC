@@ -1,0 +1,55 @@
+@startuml
+' WebRTC Architecture Overview
+title WebRTC Architecture Overview
+
+' Application Layer
+package "Application Layer" {
+    [JavaScript/TypeScript App] as app
+    [getUserMedia API] as getUserMedia
+    [RTCPeerConnection API] as peerConn
+    [RTCDataChannel API] as dataChan
+}
+
+' WebRTC Native Implementation (in browser)
+package "WebRTC Native Implementation\n(C++ in browser)" {
+    [Media Engine] as mediaEngine
+    [Transport Engine] as transportEngine
+    [Security Engine] as securityEngine
+    [STUN/TURN Client] as stunTurn
+    [ICE Agent] as iceAgent
+    [DTLS/SRTP Engine] as dtlsSrtp
+    [SCTP Engine] as sctpEngine
+}
+
+' Network Stack
+package "Network Stack" {
+    [UDP/IP Stack] as udpIp
+    [TCP/IP Stack] as tcpIp
+    [DNS Resolution] as dns
+}
+
+' Connections
+app --> getUserMedia : Uses
+app --> peerConn : Uses
+app --> dataChan : Uses
+
+getUserMedia --> mediaEngine : Audio/Video Tracks
+peerConn --> transportEngine : Controls
+peerConn --> securityEngine : Controls
+peerConn --> iceAgent : Controls
+peerConn --> dataChan : Creates
+dataChan --> sctpEngine : Uses
+
+mediaEngine --> udpIp : RTP/RTCP
+mediaEngine --> tcpIp : RTP/RTCP (fallback)
+transportEngine --> stunTurn : STUN/TURN Requests
+transportEngine --> iceAgent : ICE Candidates
+securityEngine --> dtlsSrtp : Key Exchange
+dtlsSrtp --> udpIp : SRTP/SRTCP
+sctpEngine --> udpIp : SCTP Data
+sctpEngine --> tcpIp : SCTP Data (fallback)
+
+udpIp --> dns : STUN/TURN Lookup
+tcpIp --> dns : Signaling Server Lookup
+
+@enduml

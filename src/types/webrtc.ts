@@ -57,10 +57,21 @@ export interface ConnectionStats {
   calculatedBitrate: DataPoint<number>; // derived
 }
 
+export type SignalingMessageType =
+  | 'join'
+  | 'joined'
+  | 'offer'
+  | 'answer'
+  | 'candidate'
+  | 'leave'
+  | 'peer-joined'
+  | 'peer-left'
+  | 'error';
+
 export interface SignalingMessage {
-  type: 'offer' | 'answer' | 'candidate' | 'join' | 'leave';
+  type: SignalingMessageType;
   roomId: string;
-  senderId: string;
-  payload: unknown;
-  timestamp: number;
+  senderId?: string;
+  payload?: unknown;
+  timestamp?: number;
 }

@@ -1,0 +1,88 @@
+@startuml
+' WebRTC Connection Flow Sequence Diagram
+title WebRTC Connection Establishment Flow
+
+' Participants
+actor User
+participant "Web App\n(JavaScript)" as webApp
+participant "Browser\nWebRTC API" as browser
+participant "Signaling\nServer" as signal
+participant "STUN\nServer" as stun
+participant "TURN\nServer" as turn
+participant "Remote Peer\nBrowser" as remoteBrowser
+participant "Remote Peer\nWeb App" as remoteApp
+
+' == Preparation Phase ==
+User -> webApp : Request media access
+webApp -> browser : getUserMedia({video:true, audio:true})
+browser --> webApp : MediaStream
+
+webApp -> browser : new RTCPeerConnection(iceServers)
+browser -> stun : STUN Binding Request (gathering)
+stun --> browser : STUN Binding Response (host candidate)
+browser -> turn : TURN Allocate Request (if needed)
+turn --> browser : TURN Allocate Response (relay candidate)
+browser --> webApp : onicecandidate (local candidates)
+
+' == Signaling: Offer/Answer ==
+webApp -> browser : createOffer()
+browser --> webApp : Offer (SDP)
+webApp -> browser : setLocalDescription(offer)
+webApp -> signal : Offer (via WebSocket/Signal)
+signal -> remoteApp : Offer (forward)
+
+remoteApp -> remoteBrowser : setRemoteDescription(offer)
+remoteApp -> remoteBrowser : createAnswer()
+remoteBrowser --> remoteApp : Answer (SDP)
+remoteApp -> remoteBrowser : setLocalDescription(answer)
+remoteApp -> signal : Answer (via WebSocket/Signal)
+signal -> webApp : Answer (forward)
+
+webApp -> browser : setRemoteDescription(answer)
+
+' == ICE Candidate Exchange (ongoing) ==
+browser -> stun : STUN Binding Request (server reflexive)
+stun --> browser : STUN Binding Response (server reflexive candidate)
+browser --> webApp : onicecandidate (server reflexive)
+webApp -> signal : ICE Candidate (server reflexive)
+signal -> remoteApp : ICE Candidate (forward)
+remoteApp -> remoteBrowser : addIceCandidate(server reflexive candidate)
+
+browser -> turn : TURN Allocate Request (if needed)
+turn --> browser : TURN Allocate Response (relay candidate)
+browser --> webApp : onicecandidate (turn relay)
+webApp -> signal : ICE Candidate (TURN relay)
+signal -> remoteApp : ICE Candidate (forward)
+remoteApp -> remoteBrowser : addIceCandidate(TURN relay candidate)
+
+' == Connection Establishment ==
+browser <-> remoteBrowser : ICE Connectivity Checks (STUN Binding Requests/Responses)
+browser <-> remoteBrowser : Select best candidate pair
+browser <-> remoteBrowser : DTLS Handshake
+browser <-> remoteBrowser : SRTP/SRTP Key Exchange
+browser <-> remoteBrowser : Media Flow Begins (RTP/RTCP over selected pair)
+
+' == Data Channel (Optional) ==
+webApp -> browser : createDataChannel("chat")
+browser --> webApp : DataChannel created
+webApp -> remoteApp : DataChannel ID via signaling (if negotiated)
+remoteApp -> remoteBrowser : createDataChannel("chat") (if negotiated)
+browser <-> remoteBrowser : SCTP Association Setup
+browser <-> remoteBrowser : Data Channel Ready
+
+' == Media Transfer ==
+browser -> remoteBrowser : RTP (audio/video)
+remoteBrowser -> browser : RTCP (feedback)
+browser -> remoteBrowser : SCTP Data (if data channel)
+remoteBrowser -> browser : SCTP Data (if data channel)
+
+' == Connection Termination ==
+User -> webApp : End call
+webApp -> browser : close()
+browser --> webApp : close complete
+webApp -> signal : Bye (via signaling)
+signal -> remoteApp : Bye (forward)
+remoteApp -> remoteBrowser : close()
+remoteBrowser --> remoteApp : close complete
+
+@enduml

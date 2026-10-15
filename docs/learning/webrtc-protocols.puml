@@ -1,0 +1,73 @@
+@startuml
+' WebRTC Protocol Stack Layers
+title WebRTC Protocol Stack Layers
+
+' Layers from top to bottom
+layer "Application Layer" {
+    [JavaScript APIs:\ngetUserMedia()\nRTCPeerConnection()\nRTCDataChannel()] as appAPIs
+} 
+
+layer "Signaling Layer" {
+    [WebSocket/\nHTTP/\nSIP/\nXMPP] as signaling
+}
+
+layer "Transport Layer" {
+    [ICE:\nSTUN/TURN\nCandidate Gathering] as ice
+    [DTLS:\nKey Exchange] as dtls
+}
+
+layer "Security Layer" {
+    [SRTP:\nMedia Encryption] as srtp
+    [SRTCP:\nMedia Control] as srtcp
+    [DTLS:\nData Channel Encryption] as dtlsData
+}
+
+layer "Media Layer" {
+    [RTP:\nMedia Transport] as rtp
+    [SCTP:\nData Channel Transport] as sctp
+}
+
+layer "Network Layer" {
+    [UDP:\nPreferred Transport] as udp
+    [TCP:\nFallback Transport] as tcp
+    [IP:\nNetwork Layer] as ip
+}
+
+' Dependencies (downward)
+appAPIs --> signaling : Uses for coordination
+signaling --> ice : Exchanges candidates
+signaling --> dtls : Exchanges fingerprints
+ice --> udp, tcp : Sends STUN/TURN requests
+dtls --> udp, tcp : Performs handshake
+srtp --> udp : Encrypts media
+srtcp --> udp : Sends control packets
+rtp --> udp : Transports media
+sctp --> udp : Transports data (preferred)
+sctp --> tcp : Transports data (fallback)
+udp --> ip : Network delivery
+tcp --> ip : Network delivery
+
+' Encapsulation (upward)
+ip <-- udp : Delivers packets
+ip <-- tcp : Delivers packets
+udp <-- srtp : Carries encrypted media
+udp <-- srtcp : Carries control packets
+udp <-- dtls : Carries handshake
+udp <-- ice : Carries STUN/TURN
+tcp <-- sctp : Carries data (fallback)
+udp <-- sctp : Carries data (preferred)
+sctp <-- dtlsData : Carries encrypted data
+dtls <-- srtp : Provides keying material
+srtp <-- rtp : Secures media transport
+srtcp <-- rtp : Provides control for media
+dtlsData <-- sctp : Secures data transport
+
+' Label the layers
+note top of appAPIs : Layer 6: Application\n(Web APIs)
+note top of signaling : Layer 5: Signaling\n(App-specific)
+note top of ice : Layer 4: Transport\n(ICE, DTLS)
+note top of srtp : Layer 3: Security\n(SRTP, SRTCP, DTLS)
+note top of rtp : Layer 2: Media\n(RTP, SCTP)
+note top of udp : Layer 1: Network\n(UDP/IP, TCP/IP)
+
+@enduml
